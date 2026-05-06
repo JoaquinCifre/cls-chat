@@ -1,7 +1,6 @@
 {
-  "name": "deposito-chat",
-  "version": "1.0.0",
-  "description": "Chat interno para depósitos",
+  "name": "cls-chat",
+  "version": "2.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

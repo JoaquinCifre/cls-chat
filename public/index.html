@@ -872,7 +872,12 @@
 </div>
 
 <!-- File input (hidden) -->
-<input type="file" id="file-input" style="display:none" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar,.csv">
+<input
+  type="file"
+  id="file-input"
+  style="display:none"
+  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar,.csv"
+>
 
 <script>
   // ─────────────────────────────
@@ -889,61 +894,94 @@
 
   // NUEVO
   let chatActivo = 'todos';
-  let privados = {};
-  let unread = {};
-  let historialMensajesCache = [];
+let privados = {};
+let unread = {};
+let historialMensajesCache = [];
+let actividadUsuarios = {};
   // ─────────────────────────────
   // LOGIN
   // ─────────────────────────────
 
-  async function initLogin() {
-    const res = await fetch('/api/usuarios');
-    const usuarios = await res.json();
+  fetch('/api/usuarios')
+  .then(res => res.json())
+  .then(usuarios => {
 
-    const grid = document.getElementById('user-grid');
-    grid.innerHTML = '';
+    const container =
+      document.getElementById('user-grid');
+
+    container.innerHTML = '';
 
     usuarios.forEach(nombre => {
 
-      const btn = document.createElement('button');
+      const btn =
+        document.createElement('button');
 
       btn.className = 'user-btn';
 
       btn.innerHTML = `
-        <span class="user-avatar-sm">
+        <div class="user-avatar-sm">
           ${initials(nombre)}
-        </span>
-        ${nombre}
+        </div>
+
+        <span>${nombre}</span>
       `;
 
-      btn.onclick = () => selectUser(nombre, btn);
+      btn.onclick = () => {
 
-      grid.appendChild(btn);
+        document.querySelectorAll('.user-btn')
+          .forEach(b =>
+            b.classList.remove('selected')
+          );
+
+        btn.classList.add('selected');
+
+        selectedListUser = nombre;
+
+        checkEnterBtn();
+      };
+
+      container.appendChild(btn);
     });
-  }
+  });
 
   function switchTab(tab) {
 
-    activeTab = tab;
+  activeTab = tab;
 
-    document.querySelectorAll('.tab')
-      .forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab')
+    .forEach(t =>
+      t.classList.remove('active')
+    );
 
-    document.querySelectorAll('.tab-panel')
-      .forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-panel')
+    .forEach(p =>
+      p.classList.remove('active')
+    );
 
-    event.target.classList.add('active');
+  // activar tab correcto
+  if (tab === 'escribir') {
 
-    document.getElementById(`tab-${tab}`)
+    document.querySelectorAll('.tab')[0]
       .classList.add('active');
 
-    selectedListUser = '';
+  } else {
 
-    document.querySelectorAll('.user-btn')
-      .forEach(b => b.classList.remove('selected'));
-
-    checkEnterBtn();
+    document.querySelectorAll('.tab')[1]
+      .classList.add('active');
   }
+
+  document.getElementById(`tab-${tab}`)
+    .classList.add('active');
+
+  selectedListUser = '';
+
+  document.querySelectorAll('.user-btn')
+    .forEach(b =>
+      b.classList.remove('selected')
+    );
+
+  checkEnterBtn();
+}
 
   function selectUser(nombre, btn) {
 
@@ -988,17 +1026,19 @@
 
   function entrar() {
 
-    const nombre = activeTab === 'escribir'
-      ? document.getElementById('input-nombre').value.trim()
-      : selectedListUser;
+  const nombre = activeTab === 'escribir'
+    ? document.getElementById('input-nombre')
+        .value
+        .trim()
+    : selectedListUser;
 
-    if (!nombre || nombre.length < 2) return;
+  if (!nombre || nombre.length < 2)
+    return;
 
-    myName = nombre;
+  myName = nombre;
 
-    startChat();
-  }
-
+  startChat();
+}
   // ─────────────────────────────
   // START CHAT
   // ─────────────────────────────
@@ -1017,8 +1057,9 @@
     socket = io();
 
     socket.on('connect', () => {
-      socket.emit('unirse', myName);
-    });
+
+  socket.emit('unirse', myName);
+});
 
 socket.on('login_error', (msg) => {
 
@@ -1029,31 +1070,45 @@ socket.on('login_error', (msg) => {
 
     socket.on('historial', (msgs) => {
 
-      historialMensajesCache = msgs;
+  historialMensajesCache = msgs;
 
-      const messagesEl = document.getElementById('messages');
+  historialMensajesRender();
 
-      messagesEl.innerHTML = '';
+  scrollToBottom();
+});
 
-      lastSender = null;
+	socket.on(
+  'conversaciones',
+  (data) => {
 
-      if (msgs.length > 0) {
+    Object.keys(data)
+      .forEach(key => {
 
-        const div = document.createElement('div');
+        if (key === 'todos') return;
 
-        div.className = 'history-divider';
+        const users =
+          key.split('__');
 
-        div.innerHTML = `
-          <span>— Historial de mensajes —</span>
-        `;
+        const otro =
+          users.find(
+            u => u !== myName
+          );
 
-        messagesEl.appendChild(div);
+        privados[otro] =
+          data[key];
+      });
+  }
+);
 
-        msgs.forEach(m => renderMessage(m, false));
-      }
+socket.on(
+  'actividad',
+  (data) => {
 
-      scrollToBottom();
-    });
+    actividadUsuarios = data;
+
+    renderUsers(lastUsers || []);
+  }
+);
 
     // MENSAJE NORMAL
     socket.on('mensaje', (msg) => {
@@ -1094,43 +1149,46 @@ socket.on('login_error', (msg) => {
     // MENSAJE PRIVADO
     socket.on('mensaje_privado', (msg) => {
 
-      const otro =
-        msg.de === myName
-          ? msg.para
-          : msg.de;
+  const otro =
+    msg.de === myName
+      ? msg.para
+      : msg.de;
 
-      if (!privados[otro]) {
-        privados[otro] = [];
-      }
+  if (!privados[otro]) {
+    privados[otro] = [];
+  }
 
-      privados[otro].push(msg);
+  privados[otro].push(msg);
 
-      if (chatActivo === otro) {
+  if (chatActivo === otro) {
 
-        renderPrivados();
+    renderPrivados();
 
-      } else {
+  } else {
 
-        unread[otro] = (unread[otro] || 0) + 1;
-      }
+    unread[otro] =
+      (unread[otro] || 0) + 1;
+  }
 
-      renderUsers(lastUsers || []);
+  renderUsers(lastUsers || []);
 
-      playSound();
+  if (msg.de !== myName) {
 
-      showToast(
-        msg.de,
-        msg.texto
-      );
-    });
+    playSound();
+
+    showToast(
+      msg.de,
+      msg.texto
+    );
+  }
+});
 
     socket.on('usuarios', (lista) => {
 
-      lastUsers = lista;
+  lastUsers = lista;
 
-      renderUsers(lista);
-    });
-
+  renderUsers(lista);
+});
     socket.on('escribiendo', (nombre) => {
 
       const hint = document.querySelector('.input-hint');
@@ -1264,7 +1322,9 @@ socket.on('login_error', (msg) => {
 
     if (chatActivo === 'todos') {
 
-      socket.emit('mensaje', payload);
+      socket.emit('mensaje', {
+  texto
+});
 
     } else {
 

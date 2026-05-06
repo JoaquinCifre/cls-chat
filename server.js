@@ -1,9 +1,9 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const multer = require('multer');
 
 const app = express();
 const server = http.createServer(app);
@@ -12,49 +12,76 @@ const io = new Server(server);
 const PORT = process.env.PORT || 3000;
 
 const USUARIOS_PREDEFINIDOS = [
-  'Daniel', 'Georgina', 'Gonzalo', 'Gustavo',
-  'Joan', 'Joaquín', 'Pablo G.', 'Pablo P.', 'Sofía'
+  'Georgina',
+  'Sofia',
+	'Pablo P.',
+'Pablo G.',
+'Joaquín',
+'Gonzalo',
+'Gustavo',
+'Joan',
+'Daniel',
 ];
-const historialPath = path.join(__dirname, 'mensajes.json');
 
-let historialMensajes = [];
+const DATA_PATH = path.join(__dirname, 'mensajes.json');
 
-if (fs.existsSync(historialPath)) {
+let conversaciones = {
+  todos: []
+};
 
+let usuariosConectados = {};
+let ultimaActividad = {};
+
+if (fs.existsSync(DATA_PATH)) {
   try {
-
-    historialMensajes = JSON.parse(
-      fs.readFileSync(historialPath, 'utf8')
+    conversaciones = JSON.parse(
+      fs.readFileSync(DATA_PATH, 'utf8')
     );
-
   } catch {
-
-    historialMensajes = [];
+    conversaciones = { todos: [] };
   }
 }
-const MAX_HISTORIAL = 200;
-let usuariosConectados = {};
-let privados = {};
 
-const uploadsDir = path.join(__dirname, 'public', 'uploads');
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+function saveData() {
+  fs.writeFileSync(
+    DATA_PATH,
+    JSON.stringify(conversaciones, null, 2)
+  );
+}
+
+function uid() {
+  return Date.now().toString(36) +
+    Math.random().toString(36).slice(2);
+}
+
+function getConversationId(a, b) {
+  return [a, b].sort().join('__');
+}
+
+const uploadsDir = path.join(
+  __dirname,
+  'public',
+  'uploads'
+);
+
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const base = path.basename(file.originalname, ext)
-      .replace(/[^a-zA-Z0-9_-]/g, '_')
-      .substring(0, 40);
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
 
-    cb(null, `${Date.now()}-${base}${ext}`);
+  filename: (req, file, cb) => {
+    cb(
+      null,
+      Date.now() + '-' + file.originalname
+    );
   }
 });
 
-const upload = multer({
-  storage,
-  limits: { fileSize: 20 * 1024 * 1024 }
-});
+const upload = multer({ storage });
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
@@ -63,188 +90,188 @@ app.get('/api/usuarios', (req, res) => {
   res.json(USUARIOS_PREDEFINIDOS);
 });
 
-app.post('/api/upload', upload.single('archivo'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'Sin archivo' });
+app.post(
+  '/api/upload',
+  upload.single('archivo'),
+  (req, res) => {
 
-  res.json({
-    url: `/uploads/${req.file.filename}`,
-    nombre: req.file.originalname,
-    tipo: req.file.mimetype,
-    esImagen: req.file.mimetype.startsWith('image/'),
-    tamaño: req.file.size
-  });
-});
+    if (!req.file) {
+      return res.status(400).json({
+        error: 'Sin archivo'
+      });
+    }
+
+    res.json({
+      url: `/uploads/${req.file.filename}`,
+      nombre: req.file.originalname,
+      tipo: req.file.mimetype
+    });
+  }
+);
 
 io.on('connection', (socket) => {
 
- socket.on('unirse', (nombre) => {
+  socket.on('unirse', (nombre) => {
 
-  // Evitar duplicados
-  const yaExiste = Object.values(usuariosConectados)
-  .includes(nombre);
+    const yaExiste = Object.values(
+      usuariosConectados
+    ).includes(nombre);
 
-if (yaExiste) {
+    if (yaExiste) {
+      socket.emit(
+        'login_error',
+        'Ese usuario ya está conectado'
+      );
+      return;
+    }
 
-  socket.emit(
-    'login_error',
-    'Ese usuario ya está conectado'
-  );
+    socket.nombre = nombre;
 
-  return;
-}
+    usuariosConectados[socket.id] = nombre;
 
-  socket.nombre = nombre;
+    ultimaActividad[nombre] =
+      new Date().toISOString();
 
-  usuariosConectados[socket.id] = nombre;
+    socket.emit(
+      'historial',
+      conversaciones.todos || []
+    );
 
-  socket.emit('historial', historialMensajes);
+    socket.emit(
+      'conversaciones',
+      conversaciones
+    );
 
-  io.emit('usuarios',
-    Object.values(usuariosConectados));
+    io.emit(
+      'usuarios',
+      Object.values(usuariosConectados)
+    );
 
-  const msg = mensajeSistema(
-    `${nombre} se conectó`
-  );
+    io.emit(
+      'actividad',
+      ultimaActividad
+    );
+  });
 
-  guardar(msg);
+  socket.on('mensaje', ({ texto }) => {
 
-  io.emit('mensaje', msg);
-});
-
-  // =====================
-  // MENSAJE GRUPAL
-  // =====================
-
-  socket.on('mensaje', (data) => {
-    if (!socket.nombre) return;
+    if (!texto?.trim()) return;
 
     const msg = {
       id: uid(),
       tipo: 'mensaje',
       nombre: socket.nombre,
-      texto: (data.texto || '').trim().substring(0, 2000),
-      archivo: data.archivo || null,
+      texto,
       timestamp: new Date().toISOString()
     };
 
-    guardar(msg);
+    conversaciones.todos.push(msg);
+
+    saveData();
 
     io.emit('mensaje', msg);
   });
 
-  // =====================
-  // MENSAJE PRIVADO
-  // =====================
+  socket.on(
+    'mensaje_privado',
+    ({ para, texto }) => {
 
-  socket.on('mensaje_privado', (data) => {
+      if (!texto?.trim()) return;
 
-    const destino = Object.entries(usuariosConectados)
-      .find(([id, nombre]) => nombre === data.para);
+      const convId = getConversationId(
+        socket.nombre,
+        para
+      );
 
-    if (!destino) return;
+      if (!conversaciones[convId]) {
+        conversaciones[convId] = [];
+      }
 
-    const [socketId] = destino;
+      const msg = {
+        id: uid(),
+        tipo: 'privado',
+        de: socket.nombre,
+        para,
+        texto,
+        timestamp: new Date().toISOString(),
+        eliminado: false
+      };
 
-    const msg = {
-      id: uid(),
-      tipo: 'privado',
-      de: socket.nombre,
-      para: data.para,
-      texto: data.texto,
-      timestamp: new Date().toISOString()
-    };
+      conversaciones[convId].push(msg);
 
-    io.to(socketId).emit('mensaje_privado', msg);
-    socket.emit('mensaje_privado', msg);
-  });
+      saveData();
 
-  // =====================
-  // ESCRIBIENDO
-  // =====================
+      const destino = Object.entries(
+        usuariosConectados
+      ).find(([id, n]) => n === para);
 
-  socket.on('escribiendo', (para) => {
+      if (destino) {
+        io.to(destino[0])
+          .emit('mensaje_privado', msg);
+      }
 
-    if (para === 'todos') {
-      socket.broadcast.emit('escribiendo', socket.nombre);
-      return;
+      socket.emit('mensaje_privado', msg);
     }
+  );
 
-    const destino = Object.entries(usuariosConectados)
-      .find(([id, nombre]) => nombre === para);
+  socket.on(
+    'eliminar_mensaje',
+    ({ conversacion, id }) => {
 
-    if (!destino) return;
+      if (!conversaciones[conversacion]) return;
 
-    io.to(destino[0]).emit('escribiendo', socket.nombre);
+      conversaciones[conversacion] =
+        conversaciones[conversacion].map(m => {
+
+          if (m.id === id) {
+            return {
+              ...m,
+              texto: 'Mensaje eliminado',
+              eliminado: true
+            };
+          }
+
+          return m;
+        });
+
+      saveData();
+
+      io.emit(
+        'mensaje_eliminado',
+        { conversacion, id }
+      );
+    }
+  );
+
+  socket.on('escribiendo', () => {
+
+    socket.broadcast.emit(
+      'escribiendo',
+      socket.nombre
+    );
   });
 
   socket.on('disconnect', () => {
 
-    if (socket.nombre) {
+    if (!socket.nombre) return;
 
-      delete usuariosConectados[socket.id];
+    ultimaActividad[socket.nombre] =
+      new Date().toISOString();
 
-      io.emit('usuarios', Object.values(usuariosConectados));
+    delete usuariosConectados[socket.id];
 
-      const msg = mensajeSistema(`${socket.nombre} se desconectó`);
+    io.emit(
+      'usuarios',
+      Object.values(usuariosConectados)
+    );
 
-      guardar(msg);
-
-      io.emit('mensaje', msg);
-    }
+    io.emit(
+      'actividad',
+      ultimaActividad
+    );
   });
 });
 
-function mensajeSistema(texto) {
-  return {
-    id: uid(),
-    tipo: 'sistema',
-    texto,
-    timestamp: new Date().toISOString()
-  };
-}
-
-function guardar(msg) {
-
-  // NO guardar mensajes de sistema
-  if (msg.tipo === 'sistema') return;
-
-  historialMensajes.push(msg);
-
-  if (historialMensajes.length > MAX_HISTORIAL) {
-
-    historialMensajes.shift();
-  }
-
-  fs.writeFileSync(
-    historialPath,
-    JSON.stringify(historialMensajes, null, 2)
-  );
-}
-
-function uid() {
-  return Date.now().toString(36) +
-    Math.random().toString(36).substr(2, 6);
-}
-
-server.listen(PORT, '0.0.0.0', () => {
-
-  const interfaces = require('os').networkInterfaces();
-
-  let localIP = 'TU-IP-LOCAL';
-
-  Object.values(interfaces).flat().forEach(i => {
-    if (i.family === 'IPv4' && !i.internal) {
-      localIP = i.address;
-    }
-  });
-
-  console.log('\n╔══════════════════════════════════════╗');
-  console.log('║       CLS CHAT — SERVIDOR       ║');
-  console.log('╠══════════════════════════════════════╣');
-  console.log(`║  Local:  http://localhost:${PORT}        ║`);
-  console.log(`║  Red:    http://${localIP}:${PORT}   ║`);
-  console.log('╠══════════════════════════════════════╣');
-  console.log('║  Compartí la URL de Red con todos    ║');
-  console.log('╚══════════════════════════════════════╝\n');
-
+server.listen(PORT, () => {
+  console.log(`Servidor iniciado ${PORT}`);
 });
