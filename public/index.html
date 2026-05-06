@@ -1198,97 +1198,100 @@ socket.on(
 }
 });
 
-    // MENSAJE PRIVADO
+       // MENSAJE PRIVADO
     socket.on('mensaje_privado', (msg) => {
 
-  const otro =
-    msg.de === myName
-      ? msg.para
-      : msg.de;
+      const otro =
+        msg.de === myName
+          ? msg.para
+          : msg.de;
 
-  if (!privados[otro]) {
-    privados[otro] = [];
-  }
-socket.on(
-  'mensaje_eliminado',
-  ({ conversacion, id }) => {
-
-    // GENERAL
-    if (conversacion === 'todos') {
-
-      historialMensajesCache =
-        historialMensajesCache.map(m => {
-
-          if (m.id === id) {
-
-            return {
-              ...m,
-              texto: 'Mensaje eliminado'
-            };
-          }
-
-          return m;
-        });
-
-      if (chatActivo === 'todos') {
-        historialMensajesRender();
+      if (!privados[otro]) {
+        privados[otro] = [];
       }
 
-      return;
-    }
+      privados[otro].push(msg);
 
-    // PRIVADOS
-    const otro =
-      conversacion
-        .split('__')
-        .find(u => u !== myName);
+      if (chatActivo === otro) {
 
-    if (!otro || !privados[otro])
-      return;
+        renderPrivados();
 
-    privados[otro] =
-      privados[otro].map(m => {
+      } else {
 
-        if (m.id === id) {
+        unread[otro] =
+          (unread[otro] || 0) + 1;
+      }
 
-          return {
-            ...m,
-            texto: 'Mensaje eliminado'
-          };
+      renderUsers(lastUsers || []);
+
+      if (msg.de !== myName) {
+
+        playSound();
+
+        showToast(
+          msg.de,
+          msg.texto
+        );
+      }
+    });
+
+    // ELIMINAR MENSAJE
+    socket.on(
+      'mensaje_eliminado',
+      ({ conversacion, id }) => {
+
+        // GENERAL
+        if (conversacion === 'todos') {
+
+          historialMensajesCache =
+            historialMensajesCache.map(m => {
+
+              if (m.id === id) {
+
+                return {
+                  ...m,
+                  texto: 'Mensaje eliminado'
+                };
+              }
+
+              return m;
+            });
+
+          if (chatActivo === 'todos') {
+            historialMensajesRender();
+          }
+
+          return;
         }
 
-        return m;
-      });
+        // PRIVADOS
+        const otro =
+          conversacion
+            .split('__')
+            .find(u => u !== myName);
 
-    if (chatActivo === otro) {
-      renderPrivados();
-    }
-  }
-);
-  privados[otro].push(msg);
+        if (!otro || !privados[otro])
+          return;
 
-  if (chatActivo === otro) {
+        privados[otro] =
+          privados[otro].map(m => {
 
-    renderPrivados();
+            if (m.id === id) {
 
-  } else {
+              return {
+                ...m,
+                texto: 'Mensaje eliminado'
+              };
+            }
 
-    unread[otro] =
-      (unread[otro] || 0) + 1;
-  }
+            return m;
+          });
 
-  renderUsers(lastUsers || []);
-
-  if (msg.de !== myName) {
-
-    playSound();
-
-    showToast(
-      msg.de,
-      msg.texto
+        if (chatActivo === otro) {
+          renderPrivados();
+        }
+      }
     );
-  }
-});
 
     socket.on('usuarios', (lista) => {
 
@@ -1346,8 +1349,17 @@ socket.on(
 
   el.appendChild(todos);
 
-  // TODOS LOS USUARIOS
-  usuariosBase.forEach(nombre => {
+  // unir:
+  // usuarios base +
+  // usuarios conectados manuales
+  const allUsers = [
+    ...new Set([
+      ...usuariosBase,
+      ...lista
+    ])
+  ];
+
+  allUsers.forEach(nombre => {
 
     // no mostrarme
     if (nombre === myName)
@@ -1371,6 +1383,8 @@ socket.on(
   ).textContent =
     `${lista.length} conectados`;
 }
+
+
   
 
   function createUserItem(
