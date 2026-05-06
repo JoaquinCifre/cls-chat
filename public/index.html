@@ -898,6 +898,7 @@ let privados = {};
 let unread = {};
 let historialMensajesCache = [];
 let actividadUsuarios = {};
+let usuariosBase = [];
   // ─────────────────────────────
   // LOGIN
   // ─────────────────────────────
@@ -906,8 +907,12 @@ let actividadUsuarios = {};
   .then(res => res.json())
   .then(usuarios => {
 
+    usuariosBase = usuarios;
+
     const container =
-      document.getElementById('user-grid');
+      document.getElementById(
+        'user-grid'
+      );
 
     container.innerHTML = '';
 
@@ -928,14 +933,20 @@ let actividadUsuarios = {};
 
       btn.onclick = () => {
 
-        document.querySelectorAll('.user-btn')
+        document
+          .querySelectorAll('.user-btn')
           .forEach(b =>
-            b.classList.remove('selected')
+            b.classList.remove(
+              'selected'
+            )
           );
 
-        btn.classList.add('selected');
+        btn.classList.add(
+          'selected'
+        );
 
-        selectedListUser = nombre;
+        selectedListUser =
+          nombre;
 
         checkEnterBtn();
       };
@@ -1222,45 +1233,73 @@ socket.on(
 
   function renderUsers(lista) {
 
-  const el = document.getElementById('users-list');
+  const el =
+    document.getElementById(
+      'users-list'
+    );
 
   el.innerHTML = '';
 
-  // TODOS
-  const todos = createUserItem('todos', true);
+  // GENERAL
+  const todos =
+    createUserItem(
+      'todos',
+      true,
+      true
+    );
 
   el.appendChild(todos);
 
-  // USUARIOS
-  lista.forEach(nombre => {
+  // TODOS LOS USUARIOS
+  usuariosBase.forEach(nombre => {
 
-    // NO mostrarme a mí mismo
-    if (nombre === myName) return;
+    // no mostrarme
+    if (nombre === myName)
+      return;
 
-    const item = createUserItem(nombre);
+    const online =
+      lista.includes(nombre);
+
+    const item =
+      createUserItem(
+        nombre,
+        false,
+        online
+      );
 
     el.appendChild(item);
   });
 
-  document.getElementById('online-count')
-    .textContent = `${lista.length} conectados`;
+  document.getElementById(
+    'online-count'
+  ).textContent =
+    `${lista.length} conectados`;
 }
+  
 
-  function createUserItem(nombre, isTodos = false) {
+  function createUserItem(
+  nombre,
+  isTodos = false,
+  online = false
+) {
 
-  const item = document.createElement('div');
+  const item =
+    document.createElement('div');
 
   item.className = 'user-item';
 
   if (chatActivo === nombre) {
-    item.style.background = 'rgba(200,219,250,0.05)';
+
+    item.style.background =
+      'rgba(200,219,250,0.05)';
   }
 
   const badge =
     unread[nombre]
-      ? `<span style="
-          background:#f59e0b;
-          color:#000;
+      ? `
+        <span style="
+          background:#0054D1;
+          color:white;
           font-size:10px;
           border-radius:20px;
           padding:2px 6px;
@@ -1268,16 +1307,37 @@ socket.on(
           font-weight:700;
         ">
           ${unread[nombre]}
-        </span>`
-      : '<div class="online-dot"></div>';
+        </span>
+      `
+      : '';
 
   item.innerHTML = `
-    <div class="avatar">
-      ${isTodos ? 'CLS' : initials(nombre)}
+
+    <div
+      class="avatar"
+      style="
+        ${
+          !isTodos && online
+            ? `
+              border:1.5px solid #22c55e;
+            `
+            : ''
+        }
+      "
+    >
+      ${
+        isTodos
+          ? 'CLS'
+          : initials(nombre)
+      }
     </div>
 
     <div class="user-name">
-      ${isTodos ? 'General' : nombre}
+      ${
+        isTodos
+          ? 'General'
+          : nombre
+      }
     </div>
 
     ${badge}

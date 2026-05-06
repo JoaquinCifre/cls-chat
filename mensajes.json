@@ -1,5 +1,14 @@
 {
-  "todos": [
-    
+  "todos": [],
+  "Georgina__Sofia": [
+    {
+      "id": "moue1y3hmsh116rsig",
+      "tipo": "privado",
+      "de": "Sofia",
+      "para": "Georgina",
+      "texto": "hola",
+      "timestamp": "2026-05-06T18:26:16.925Z",
+      "eliminado": false
+    }
   ]
 }
