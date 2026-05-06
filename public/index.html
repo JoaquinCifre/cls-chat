@@ -1394,21 +1394,24 @@ socket.on('login_error', (msg) => {
 
   function showToast(nombre, texto) {
 
-    const toast =
-      document.getElementById('toast');
+  // NO mostrar mis propios mensajes
+  if (nombre === myName) return;
 
-    document.getElementById('toast-name')
-      .textContent = nombre;
+  const toast =
+    document.getElementById('toast');
 
-    document.getElementById('toast-text')
-      .textContent = texto;
+  document.getElementById('toast-name')
+    .textContent = nombre;
 
-    toast.classList.add('show');
+  document.getElementById('toast-text')
+    .textContent = texto;
 
-    setTimeout(() => {
-      toast.classList.remove('show');
-    }, 3000);
-  }
+  toast.classList.add('show');
+
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 3000);
+}
 
   function scrollToBottom() {
 
