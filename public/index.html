@@ -1579,14 +1579,20 @@ socket.on(
 
       <div
   class="bubble"
-  oncontextmenu="
-    deleteMessage(
-      event,
-      '${msg.id || ''}',
-      '${chatActivo}'
-    );
-    return false;
-  "
+  ${
+    own
+      ? `
+      oncontextmenu="
+        deleteMessage(
+          event,
+          '${msg.id || ''}',
+          '${chatActivo}'
+        );
+        return false;
+      "
+      `
+      : ''
+  }
 >
   ${escapeHtml(msg.texto)}
 </div>
