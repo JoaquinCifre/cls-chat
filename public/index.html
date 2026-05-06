@@ -1020,7 +1020,7 @@
       socket.emit('unirse', myName);
     });
 
-    socket.on('login_error', (msg) => {
+socket.on('login_error', (msg) => {
 
   alert(msg);
 
@@ -1102,13 +1102,10 @@
 
       playSound();
 
-      if (msg.de !== myName) {
-
-  showToast(
-    msg.de,
-    msg.texto
-  );
-}
+      showToast(
+        msg.de,
+        msg.texto
+      );
     });
 
     socket.on('usuarios', (lista) => {
@@ -1216,9 +1213,7 @@
 
     chatActivo = nombre;
 
-    if (chatActivo === nombre) {
-  unread[nombre] = 0;
-}
+    unread[nombre] = 0;
 
     renderUsers(lastUsers);
 
@@ -1319,24 +1314,7 @@
         hour: '2-digit',
         minute: '2-digit'
       });
-    const currentDate = new Date(msg.timestamp)
-  .toLocaleDateString();
 
-if (lastDate !== currentDate) {
-
-  lastDate = currentDate;
-
-  const divider = document.createElement('div');
-
-  divider.className = 'history-divider';
-
-  divider.innerHTML = `
-    <span>${currentDate}</span>
-  `;
-
-  document.getElementById('messages')
-    .appendChild(divider);
-}
     group.innerHTML = `
       <div class="msg-meta">
         <div class="msg-avatar">
@@ -1353,17 +1331,8 @@ if (lastDate !== currentDate) {
       </div>
 
       <div class="bubble">
-  ${escapeHtml(msg.texto)}
-
-  <div style="
-    font-size:11px;
-    opacity:.6;
-    margin-top:4px;
-    text-align:right;
-  ">
-    ${time}
-  </div>
-</div>
+        ${escapeHtml(msg.texto)}
+      </div>
     `;
 
     if (animate) {
@@ -1399,7 +1368,6 @@ if (lastDate !== currentDate) {
   messagesEl.innerHTML = '';
 
   lastSender = null;
-  let lastDate = null;
 
   historialMensajesCache.forEach(m => {
     renderMessage(m, false);

@@ -81,15 +81,17 @@ io.on('connection', (socket) => {
 
   // Evitar duplicados
   const yaExiste = Object.values(usuariosConectados)
-    .includes(nombre);
+  .includes(nombre);
 
-  if (yaExiste) {
+if (yaExiste) {
 
-    socket.emit('login_error',
-      'Ese usuario ya está conectado');
+  socket.emit(
+    'login_error',
+    'Ese usuario ya está conectado'
+  );
 
-    return;
-  }
+  return;
+}
 
   socket.nombre = nombre;
 
