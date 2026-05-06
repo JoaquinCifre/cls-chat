@@ -1092,13 +1092,21 @@ socket.on('login_error', (msg) => {
   'conversaciones',
   (data) => {
 
+    privados = {};
+
     Object.keys(data)
       .forEach(key => {
 
-        if (key === 'todos') return;
+        // ignorar general
+        if (key === 'todos')
+          return;
 
         const users =
           key.split('__');
+
+        // SOLO conversaciones donde participo yo
+        if (!users.includes(myName))
+          return;
 
         const otro =
           users.find(
