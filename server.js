@@ -15,8 +15,23 @@ const USUARIOS_PREDEFINIDOS = [
   'Daniel', 'Georgina', 'Gonzalo', 'Gustavo',
   'Joan', 'Joaquín', 'Pablo G.', 'Pablo P.', 'Sofía'
 ];
+const historialPath = path.join(__dirname, 'mensajes.json');
 
 let historialMensajes = [];
+
+if (fs.existsSync(historialPath)) {
+
+  try {
+
+    historialMensajes = JSON.parse(
+      fs.readFileSync(historialPath, 'utf8')
+    );
+
+  } catch {
+
+    historialMensajes = [];
+  }
+}
 const MAX_HISTORIAL = 200;
 let usuariosConectados = {};
 let privados = {};
@@ -62,19 +77,37 @@ app.post('/api/upload', upload.single('archivo'), (req, res) => {
 
 io.on('connection', (socket) => {
 
-  socket.on('unirse', (nombre) => {
-    socket.nombre = nombre;
-    usuariosConectados[socket.id] = nombre;
+ socket.on('unirse', (nombre) => {
 
-    socket.emit('historial', historialMensajes);
+  // Evitar duplicados
+  const yaExiste = Object.values(usuariosConectados)
+    .includes(nombre);
 
-    io.emit('usuarios', Object.values(usuariosConectados));
+  if (yaExiste) {
 
-    const msg = mensajeSistema(`${nombre} se conectó`);
-    guardar(msg);
+    socket.emit('login_error',
+      'Ese usuario ya está conectado');
 
-    io.emit('mensaje', msg);
-  });
+    return;
+  }
+
+  socket.nombre = nombre;
+
+  usuariosConectados[socket.id] = nombre;
+
+  socket.emit('historial', historialMensajes);
+
+  io.emit('usuarios',
+    Object.values(usuariosConectados));
+
+  const msg = mensajeSistema(
+    `${nombre} se conectó`
+  );
+
+  guardar(msg);
+
+  io.emit('mensaje', msg);
+});
 
   // =====================
   // MENSAJE GRUPAL
@@ -169,11 +202,21 @@ function mensajeSistema(texto) {
 }
 
 function guardar(msg) {
+
+  // NO guardar mensajes de sistema
+  if (msg.tipo === 'sistema') return;
+
   historialMensajes.push(msg);
 
   if (historialMensajes.length > MAX_HISTORIAL) {
+
     historialMensajes.shift();
   }
+
+  fs.writeFileSync(
+    historialPath,
+    JSON.stringify(historialMensajes, null, 2)
+  );
 }
 
 function uid() {
