@@ -1551,6 +1551,9 @@ socket.on(
 
     const own = msg.nombre === myName;
 
+	const shouldGroup =
+  lastSender === msg.nombre;
+
     const group = document.createElement('div');
 
     group.className =
@@ -1563,19 +1566,25 @@ socket.on(
       });
 
     group.innerHTML = `
-      <div class="msg-meta">
-        <div class="msg-avatar">
-          ${initials(msg.nombre)}
-        </div>
-
-        <div class="msg-name">
-          ${msg.nombre}
-        </div>
-
-        <div class="msg-time">
-          ${time}
-        </div>
+     ${
+  !shouldGroup
+    ? `
+    <div class="msg-meta">
+      <div class="msg-avatar">
+        ${initials(msg.nombre)}
       </div>
+
+      <div class="msg-name">
+        ${msg.nombre}
+      </div>
+
+      <div class="msg-time">
+        ${time}
+      </div>
+    </div>
+    `
+    : ''
+}
 
       <div
   class="bubble"
@@ -1609,6 +1618,7 @@ socket.on(
 
     document.getElementById('messages')
       .appendChild(group);
+lastSender = msg.nombre;
   }
 
   function renderSystemMsg(texto) {

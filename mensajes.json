@@ -1,5 +1,34 @@
 {
-  "todos": [],
+  "todos": [
+    {
+      "id": "moug2ighmjmeo5nkhza",
+      "tipo": "mensaje",
+      "nombre": "Joaquín",
+      "texto": "a ver",
+      "timestamp": "2026-05-06T19:22:42.545Z"
+    },
+    {
+      "id": "moug2j5smc4wmhq4f7",
+      "tipo": "mensaje",
+      "nombre": "Joaquín",
+      "texto": "a ver",
+      "timestamp": "2026-05-06T19:22:43.456Z"
+    },
+    {
+      "id": "moug2k1cmpzezsrubc",
+      "tipo": "mensaje",
+      "nombre": "Joaquín",
+      "texto": "a ver",
+      "timestamp": "2026-05-06T19:22:44.592Z"
+    },
+    {
+      "id": "moug2kuo31d3hrsu1ke",
+      "tipo": "mensaje",
+      "nombre": "Joaquín",
+      "texto": "a ver",
+      "timestamp": "2026-05-06T19:22:45.648Z"
+    }
+  ],
   "Georgina__Sofia": [
     {
       "id": "moue1y3hmsh116rsig",
