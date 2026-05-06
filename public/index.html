@@ -1072,7 +1072,23 @@ socket.on('login_error', (msg) => {
     unread['todos'] = (unread['todos'] || 0) + 1;
   }
 
-  playSound();
+  // NO mostrar push propio
+  if (
+    msg.nombre &&
+    msg.nombre !== myName &&
+    msg.tipo !== 'sistema'
+  ) {
+
+    showToast(
+      msg.nombre,
+      msg.texto
+    );
+  }
+
+  // NO sonido sistema
+  if (msg.tipo !== 'sistema') {
+    playSound();
+  }
 });
 
     // MENSAJE PRIVADO
