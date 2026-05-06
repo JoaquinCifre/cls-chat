@@ -1696,34 +1696,21 @@ socket.on(
     return div.innerHTML;
   }
 
-  function playSound() {
+  const notificationSound =
+  new Audio('/sounds/msn.mp3');
 
-    try {
+notificationSound.volume = 1.0;
 
-      const ctx =
-        new(window.AudioContext ||
-          window.webkitAudioContext)();
+function playSound() {
 
-      const osc =
-        ctx.createOscillator();
+  try {
 
-      const gain =
-        ctx.createGain();
+    notificationSound.currentTime = 0;
 
-      osc.connect(gain);
+    notificationSound.play();
 
-      gain.connect(ctx.destination);
-
-      osc.frequency.value = 700;
-
-      gain.gain.value = 0.02;
-
-      osc.start();
-
-      osc.stop(ctx.currentTime + 0.06);
-
-    } catch {}
-  }
+  } catch {}
+}
 
 function deleteMessage(
   event,
