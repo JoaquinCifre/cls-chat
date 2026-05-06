@@ -736,6 +736,36 @@
       .login-card { width: calc(100vw - 32px); padding: 28px 20px; }
       .bubble { max-width: 85%; }
     }
+#msg-menu {
+  position: fixed;
+  display: none;
+  background: var(--panel);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 6px;
+  z-index: 9999;
+  box-shadow: var(--shadow);
+}
+
+#msg-menu.show {
+  display: block;
+}
+
+#msg-menu button {
+  background: transparent;
+  border: none;
+  color: var(--danger);
+  padding: 10px 14px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+#msg-menu button:hover {
+  background: rgba(255,255,255,0.05);
+}
   </style>
 </head>
 <body>
@@ -883,7 +913,7 @@
   // ─────────────────────────────
   // STATE
   // ─────────────────────────────
-
+let deleteTarget = null;
   let socket;
   let myName = '';
   let pendingFile = null;
@@ -1160,9 +1190,12 @@ socket.on(
   }
 
   // NO sonido sistema
-  if (msg.tipo !== 'sistema') {
-    playSound();
-  }
+  if (
+  msg.tipo !== 'sistema' &&
+  msg.nombre !== myName
+) {
+  playSound();
+}
 });
 
     // MENSAJE PRIVADO
@@ -1176,7 +1209,62 @@ socket.on(
   if (!privados[otro]) {
     privados[otro] = [];
   }
+socket.on(
+  'mensaje_eliminado',
+  ({ conversacion, id }) => {
 
+    // GENERAL
+    if (conversacion === 'todos') {
+
+      historialMensajesCache =
+        historialMensajesCache.map(m => {
+
+          if (m.id === id) {
+
+            return {
+              ...m,
+              texto: 'Mensaje eliminado'
+            };
+          }
+
+          return m;
+        });
+
+      if (chatActivo === 'todos') {
+        historialMensajesRender();
+      }
+
+      return;
+    }
+
+    // PRIVADOS
+    const otro =
+      conversacion
+        .split('__')
+        .find(u => u !== myName);
+
+    if (!otro || !privados[otro])
+      return;
+
+    privados[otro] =
+      privados[otro].map(m => {
+
+        if (m.id === id) {
+
+          return {
+            ...m,
+            texto: 'Mensaje eliminado'
+          };
+        }
+
+        return m;
+      });
+
+    if (chatActivo === otro) {
+      renderPrivados();
+    }
+  }
+);
   privados[otro].push(msg);
 
   if (chatActivo === otro) {
@@ -1424,10 +1512,11 @@ socket.on(
       .forEach(msg => {
 
         renderMessage({
-          nombre: msg.de,
-          texto: msg.texto,
-          timestamp: msg.timestamp
-        }, false);
+  id: msg.id,
+  nombre: msg.de,
+  texto: msg.texto,
+  timestamp: msg.timestamp
+}, false);
       });
 
     scrollToBottom();
@@ -1474,9 +1563,19 @@ socket.on(
         </div>
       </div>
 
-      <div class="bubble">
-        ${escapeHtml(msg.texto)}
-      </div>
+      <div
+  class="bubble"
+  oncontextmenu="
+    deleteMessage(
+      event,
+      '${msg.id || ''}',
+      '${chatActivo}'
+    );
+    return false;
+  "
+>
+  ${escapeHtml(msg.texto)}
+</div>
     `;
 
     if (animate) {
@@ -1514,8 +1613,8 @@ socket.on(
   lastSender = null;
 
   historialMensajesCache.forEach(m => {
-    renderMessage(m, false);
-  });
+  renderMessage(m, false);
+});
 
   scrollToBottom();
 }
@@ -1606,6 +1705,81 @@ socket.on(
     } catch {}
   }
 
+function deleteMessage(
+  event,
+  id,
+  conversacion
+) {
+
+  event.preventDefault();
+
+  deleteTarget = {
+    id,
+    conversacion
+  };
+
+  const menu =
+    document.getElementById(
+      'msg-menu'
+    );
+
+  const menuWidth = 170;
+
+let x = event.clientX;
+
+if (
+  x + menuWidth >
+  window.innerWidth
+) {
+  x =
+    window.innerWidth -
+    menuWidth -
+    12;
+}
+
+menu.style.left = `${x}px`;
+
+  menu.style.top =
+    `${event.clientY}px`;
+
+  menu.classList.add('show');
+}
+
+function confirmDelete() {
+
+  if (!deleteTarget) return;
+
+  socket.emit(
+    'eliminar_mensaje',
+    {
+      conversacion:
+        deleteTarget.conversacion === 'todos'
+          ? 'todos'
+          : [myName, deleteTarget.conversacion]
+              .sort()
+              .join('__'),
+
+      id: deleteTarget.id
+    }
+  );
+
+  closeMenu();
+}
+
+function closeMenu() {
+
+  document.getElementById(
+    'msg-menu'
+  ).classList.remove('show');
+
+  deleteTarget = null;
+}
+
+document.addEventListener(
+  'click',
+  closeMenu
+);
+
   document.getElementById('message-input')
     .addEventListener('keydown', (e) => {
 
@@ -1630,5 +1804,10 @@ socket.on(
 
   initLogin();
 </script>
+<div id="msg-menu">
+  <button onclick="confirmDelete()">
+    Eliminar mensaje
+  </button>
+</div>
 </body>
 </html>

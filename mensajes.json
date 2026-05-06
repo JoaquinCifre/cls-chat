@@ -6,8 +6,28 @@
       "tipo": "privado",
       "de": "Sofia",
       "para": "Georgina",
-      "texto": "hola",
+      "texto": "Mensaje eliminado",
       "timestamp": "2026-05-06T18:26:16.925Z",
+      "eliminado": true
+    },
+    {
+      "id": "mouekekjknzaiml73f9",
+      "tipo": "privado",
+      "de": "Georgina",
+      "para": "Sofia",
+      "texto": "hola",
+      "timestamp": "2026-05-06T18:40:38.083Z",
+      "eliminado": false
+    }
+  ],
+  "Gonzalo__Pablo P.": [
+    {
+      "id": "mouemwj8rlxsa4xw2wc",
+      "tipo": "privado",
+      "de": "Gonzalo",
+      "para": "Pablo P.",
+      "texto": "hola",
+      "timestamp": "2026-05-06T18:42:34.676Z",
       "eliminado": false
     }
   ]
